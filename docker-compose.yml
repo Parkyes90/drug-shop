@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+  proxy:
+    restart: always
+    build:
+      context: ./proxy
+    depends_on:
+      - api
+      - client
+    ports:
+      - "3080:80"
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: drugShop
+      POSTGRES_PASSWORD: postgrespassword
+    volumes:
+      - ./postgres/pgdata:/var/lib/postgresql/data
+      - ./postgres/pgconf:/etc/postgresql
+      - ./postgres/pglog:/var/log/postgresql
+  api:
+    depends_on:
+      - postgres
+    build:
+      context: ./server
+    volumes:
+      - ./server:/app
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+  client:
+    stdin_open: true
+    build:
+      context: ./client
+    volumes:
+      - /app/node_modules
+      - ./client:/app
+volumes:
+  pgdata:
+    driver: local
+  pgconf:
+    driver: local
+  pglog:
+    driver: local
